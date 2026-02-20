@@ -93,7 +93,7 @@ body {
 }
 
 .nav-menu.active {
-    display: flex;
+    display: flex !important;
 }
 
 .nav-link {
@@ -135,6 +135,8 @@ body {
     cursor: pointer;
     gap: 5px;
     padding: 0.5rem;
+    z-index: 1100;
+    position: relative;
 }
 
 .nav-toggle span {
@@ -760,8 +762,8 @@ body {
 /* MOBILE FIRST RESPONSIVE BREAKPOINTS */
 /* ──────────────────────────────────────────────────────────────── */
 
-/* Extra Small Devices (320px - 479px) */
-@media (max-width: 479px) {
+/* Mobile: show hamburger for all screens below 768px */
+@media (max-width: 767px) {
     .nav-toggle {
         display: flex;
     }
@@ -775,7 +777,10 @@ body {
         padding: 0.75rem 1.5rem;
         border-bottom: 1px solid #f0f0f0;
     }
+}
 
+/* Extra Small Devices (320px - 479px) */
+@media (max-width: 479px) {
     .product-detail {
         gap: 1rem;
     }
@@ -796,20 +801,6 @@ body {
 
 /* Small Devices (480px - 767px) - Tablet in portrait */
 @media (min-width: 480px) and (max-width: 767px) {
-    .nav-toggle {
-        display: flex;
-    }
-
-    .nav-menu li {
-        width: 100%;
-    }
-
-    .nav-menu .nav-link {
-        display: block;
-        padding: 0.75rem 1.5rem;
-        border-bottom: 1px solid #f0f0f0;
-    }
-
     .page-header {
         align-items: flex-start;
     }
