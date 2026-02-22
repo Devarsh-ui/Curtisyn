@@ -36,7 +36,11 @@ if ($db) {
     
     // Calculate total
     foreach ($cartItems as $item) {
-        $finalPrice = calculateFinalPrice($item['base_price'], $commission);
+        if (!empty($item['custom_price'])) {
+            $finalPrice = floatval($item['custom_price']);
+        } else {
+            $finalPrice = calculateFinalPrice($item['base_price'], $commission);
+        }
         $totalAmount += $finalPrice * $item['quantity'];
     }
 }
@@ -70,13 +74,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Place order for each cart item
         foreach ($cartItems as $item) {
             $orderId = 'ORD' . date('Ymd') . strtoupper(substr(uniqid(), -6));
-            $finalPrice = calculateFinalPrice($item['base_price'], $commission);
+            
+            if (!empty($item['custom_price'])) {
+                $finalPrice = floatval($item['custom_price']);
+            } else {
+                $finalPrice = calculateFinalPrice($item['base_price'], $commission);
+            }
             $itemTotal = $finalPrice * $item['quantity'];
             
             $stmt = $db->prepare("
                 INSERT INTO customer_orders 
-                (order_id, user_id, product_id, quantity, price, total_amount, customer_name, customer_phone, customer_address) 
-                VALUES (:order_id, :user_id, :product_id, :quantity, :price, :total_amount, :customer_name, :customer_phone, :customer_address)
+                (order_id, user_id, product_id, quantity, price, total_amount, customer_name, customer_phone, customer_address, size_name, custom_width, custom_height) 
+                VALUES (:order_id, :user_id, :product_id, :quantity, :price, :total_amount, :customer_name, :customer_phone, :customer_address, :size_name, :custom_width, :custom_height)
             ");
             
             $stmt->bindParam(':order_id', $orderId);
@@ -88,6 +97,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bindParam(':customer_name', $name);
             $stmt->bindParam(':customer_phone', $phone);
             $stmt->bindParam(':customer_address', $fullAddress);
+            $stmt->bindParam(':size_name', $item['size_name']);
+            $stmt->bindParam(':custom_width', $item['custom_width']);
+            $stmt->bindParam(':custom_height', $item['custom_height']);
             
             if ($stmt->execute()) {
                 // Update stock
@@ -144,7 +156,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <div class="card-body">
                         <?php foreach ($cartItems as $item): 
-                            $finalPrice = calculateFinalPrice($item['base_price'], $commission);
+                            if (!empty($item['custom_price'])) {
+                                $finalPrice = floatval($item['custom_price']);
+                            } else {
+                                $finalPrice = calculateFinalPrice($item['base_price'], $commission);
+                            }
                             $itemTotal = $finalPrice * $item['quantity'];
                         ?>
                         <div style="display: flex; gap: clamp(0.75rem, 2vw, 1rem); margin-bottom: clamp(0.75rem, 2vh, 1rem); padding-bottom: clamp(0.75rem, 2vh, 1rem); border-bottom: 1px solid #eee;">
@@ -153,7 +169,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?php endif; ?>
                             <div style="flex: 1; min-width: 0;">
                                 <div style="font-weight: 600; font-size: clamp(0.9rem, 1.5vw, 1rem);"><?php echo htmlspecialchars($item['name']); ?></div>
-                                <div style="color: #666; font-size: clamp(0.8rem, 1.4vw, 0.9rem);">
+                                
+                                <?php if (!empty($item['size_name'])): ?>
+                                    <div style="font-size: clamp(0.75rem, 1.3vw, 0.85rem); color: #555; margin-top: 0.15rem;">
+                                        Size: <strong><?php echo htmlspecialchars($item['size_name']); ?></strong>
+                                        <?php if ($item['custom_width'] && $item['custom_height']): ?>
+                                            (<?php echo htmlspecialchars($item['custom_width']); ?> x <?php echo htmlspecialchars($item['custom_height']); ?> ft)
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
+                                
+                                <div style="color: #666; font-size: clamp(0.8rem, 1.4vw, 0.9rem); margin-top: 0.25rem;">
                                     ₹<?php echo number_format($finalPrice, 2); ?> x <?php echo $item['quantity']; ?>
                                 </div>
                             </div>

@@ -66,7 +66,17 @@ if ($db) {
                                         <?php if ($order['image']): ?>
                                             <img src="uploads/products/<?php echo htmlspecialchars($order['image']); ?>" alt="" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;">
                                         <?php endif; ?>
-                                        <?php echo htmlspecialchars($order['product_name']); ?>
+                                        <div>
+                                            <?php echo htmlspecialchars($order['product_name']); ?>
+                                            <?php if (!empty($order['size_name'])): ?>
+                                                <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
+                                                    Size: <strong><?php echo htmlspecialchars($order['size_name']); ?></strong>
+                                                    <?php if ($order['custom_width'] && $order['custom_height']): ?>
+                                                        (<?php echo htmlspecialchars($order['custom_width']); ?> x <?php echo htmlspecialchars($order['custom_height']); ?> ft)
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
                                     </div>
                                 </td>
                                 <td><?php echo $order['quantity']; ?></td>

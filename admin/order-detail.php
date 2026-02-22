@@ -164,7 +164,18 @@ require_once 'layout.php';
             <?php endif; ?>
             <div style="flex: 1;">
                 <h3 style="margin-bottom: 0.5rem;"><?php echo htmlspecialchars($order['product_name']); ?></h3>
-                <p style="color: #666; margin-bottom: 1rem;"><?php echo htmlspecialchars($order['description'] ?? 'No description'); ?></p>
+                
+                <?php if (!empty($order['size_name'])): ?>
+                    <div style="font-size: 0.95rem; color: #555; margin-bottom: 0.5rem; background: #eef2f3; padding: 0.5rem 1rem; border-radius: 4px; display: inline-block;">
+                        <i class="fas fa-ruler-combined" style="margin-right: 0.5rem; color: #6c757d;"></i>
+                        Size: <strong><?php echo htmlspecialchars($order['size_name']); ?></strong>
+                        <?php if ($order['custom_width'] && $order['custom_height']): ?>
+                            (<?php echo htmlspecialchars($order['custom_width']); ?> x <?php echo htmlspecialchars($order['custom_height']); ?> ft)
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+                
+                <p style="color: #666; margin-bottom: 1rem; margin-top: 0.5rem;"><?php echo htmlspecialchars($order['description'] ?? 'No description'); ?></p>
                 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
                     <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px;">

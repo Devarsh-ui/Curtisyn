@@ -59,7 +59,18 @@ try {
         }
 
         $commission = getGlobalCommission($db);
-        $finalPrice = calculateFinalPrice($product['price'], $commission);
+        
+        $customPrice = !empty($_POST['final_price']) ? floatval($_POST['final_price']) : null;
+        if ($customPrice !== null) {
+            $finalPrice = $customPrice;
+        } else {
+            $finalPrice = calculateFinalPrice($product['price'], $commission);
+        }
+        
+        $sizeName = $_POST['size_name'] ?? null;
+        $customWidth = !empty($_POST['custom_width']) ? floatval($_POST['custom_width']) : null;
+        $customHeight = !empty($_POST['custom_height']) ? floatval($_POST['custom_height']) : null;
+
         $totalAmount = $finalPrice * $quantity;
         $fullAddress = $address . ', ' . $city . ' - ' . $pincode;
         $orderId = 'ORD' . date('Ymd') . strtoupper(substr(uniqid(), -6));
@@ -72,8 +83,8 @@ try {
 
         $stmt = $db->prepare("
             INSERT INTO customer_orders
-            (order_id, user_id, product_id, quantity, price, total_amount, customer_name, customer_phone, customer_address, payment_method, payment_status, razorpay_order_id)
-            VALUES (:order_id, :user_id, :product_id, :quantity, :price, :total_amount, :customer_name, :customer_phone, :customer_address, 'online', 'pending', :razorpay_order_id)
+            (order_id, user_id, product_id, quantity, price, total_amount, customer_name, customer_phone, customer_address, payment_method, payment_status, razorpay_order_id, size_name, custom_width, custom_height)
+            VALUES (:order_id, :user_id, :product_id, :quantity, :price, :total_amount, :customer_name, :customer_phone, :customer_address, 'online', 'pending', :razorpay_order_id, :size_name, :custom_width, :custom_height)
         ");
 
         $stmt->bindParam(':order_id', $orderId);
@@ -86,6 +97,9 @@ try {
         $stmt->bindParam(':customer_phone', $phone);
         $stmt->bindParam(':customer_address', $fullAddress);
         $stmt->bindParam(':razorpay_order_id', $razorpayOrder['id']);
+        $stmt->bindParam(':size_name', $sizeName);
+        $stmt->bindParam(':custom_width', $customWidth);
+        $stmt->bindParam(':custom_height', $customHeight);
 
         if ($stmt->execute()) {
             jsonResponse([

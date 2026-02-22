@@ -80,8 +80,18 @@ if ($orderId) {
                         <img src="uploads/products/<?php echo htmlspecialchars($order['product_image']); ?>" alt="" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">
                     <?php endif; ?>
                     <div>
-                        <p style="font-weight: 600;"><?php echo htmlspecialchars($order['product_name']); ?></p>
-                        <p style="color: #666;">Qty: <?php echo $order['quantity']; ?></p>
+                        <p style="font-weight: 600; margin-bottom: 0.25rem;"><?php echo htmlspecialchars($order['product_name']); ?></p>
+                        
+                        <?php if (!empty($order['size_name'])): ?>
+                            <div style="font-size: 0.85rem; color: #555; margin-bottom: 0.25rem;">
+                                Size: <strong><?php echo htmlspecialchars($order['size_name']); ?></strong>
+                                <?php if ($order['custom_width'] && $order['custom_height']): ?>
+                                    (<?php echo htmlspecialchars($order['custom_width']); ?> x <?php echo htmlspecialchars($order['custom_height']); ?> ft)
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <p style="color: #666; font-size: 0.9rem;">Qty: <?php echo $order['quantity']; ?></p>
                     </div>
                 </div>
 

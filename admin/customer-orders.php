@@ -108,7 +108,19 @@ if ($db) {
                                 <?php if ($order['image']): ?>
                                     <img src="../uploads/products/<?php echo htmlspecialchars($order['image']); ?>" alt="" style="width: 40px; height: 40px; object-fit: cover; border-radius: 5px;">
                                 <?php endif; ?>
-                                <span style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><?php echo htmlspecialchars($order['product_name']); ?></span>
+                                <div>
+                                    <div style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        <?php echo htmlspecialchars($order['product_name']); ?>
+                                    </div>
+                                    <?php if (!empty($order['size_name'])): ?>
+                                        <div style="font-size: 0.8rem; color: #666; margin-top: 0.15rem;">
+                                            Size: <strong><?php echo htmlspecialchars($order['size_name']); ?></strong>
+                                            <?php if ($order['custom_width'] && $order['custom_height']): ?>
+                                                (<?php echo htmlspecialchars($order['custom_width']); ?> x <?php echo htmlspecialchars($order['custom_height']); ?> ft)
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </td>
                         <td><?php echo $order['quantity']; ?></td>
@@ -165,6 +177,14 @@ if ($db) {
                             <img src="../uploads/products/<?php echo htmlspecialchars($order['image']); ?>" alt="" style="width: 30px; height: 30px; object-fit: cover; border-radius: 4px; vertical-align: middle; margin-right: 5px;">
                         <?php endif; ?>
                         <?php echo htmlspecialchars($order['product_name']); ?>
+                        <?php if (!empty($order['size_name'])): ?>
+                            <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
+                                Size: <strong><?php echo htmlspecialchars($order['size_name']); ?></strong>
+                                <?php if ($order['custom_width'] && $order['custom_height']): ?>
+                                    (<?php echo htmlspecialchars($order['custom_width']); ?> x <?php echo htmlspecialchars($order['custom_height']); ?> ft)
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
                     </span>
                 </div>
                 <div class="order-info-row">
