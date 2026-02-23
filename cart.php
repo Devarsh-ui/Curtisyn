@@ -36,7 +36,12 @@ if ($db) {
     
     // Calculate total
     foreach ($cartItems as $item) {
-        $finalPrice = calculateFinalPrice($item['base_price'], $commission);
+        // Use custom price if available, otherwise fallback to standard calculation
+        if (!empty($item['custom_price'])) {
+            $finalPrice = floatval($item['custom_price']);
+        } else {
+            $finalPrice = calculateFinalPrice($item['base_price'], $commission);
+        }
         $totalAmount += $finalPrice * $item['quantity'];
     }
 }
@@ -68,7 +73,11 @@ if ($db) {
                         </thead>
                         <tbody>
                             <?php foreach ($cartItems as $item): 
-                                $finalPrice = calculateFinalPrice($item['base_price'], $commission);
+                                if (!empty($item['custom_price'])) {
+                                    $finalPrice = floatval($item['custom_price']);
+                                } else {
+                                    $finalPrice = calculateFinalPrice($item['base_price'], $commission);
+                                }
                                 $itemTotal = $finalPrice * $item['quantity'];
                             ?>
                             <tr>
@@ -79,13 +88,24 @@ if ($db) {
                                         <?php endif; ?>
                                         <div>
                                             <div style="font-weight: 600;"><?php echo htmlspecialchars($item['name']); ?></div>
-                                            <div style="font-size: 0.85rem; color: #666;">Stock: <?php echo $item['stock']; ?></div>
+                                            
+                                            <?php if (!empty($item['size_name'])): ?>
+                                                <div style="font-size: 0.85rem; color: #555; margin-top: 0.25rem;">
+                                                    Size: <strong><?php echo htmlspecialchars($item['size_name']); ?></strong>
+                                                    <?php if ($item['custom_width'] && $item['custom_height']): ?>
+                                                        (<?php echo htmlspecialchars($item['custom_width']); ?> x <?php echo htmlspecialchars($item['custom_height']); ?> ft)
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php endif; ?>
+                                            
+                                            <div style="font-size: 0.8rem; color: #999; margin-top: 0.25rem;">Stock: <?php echo $item['stock']; ?></div>
                                         </div>
                                     </div>
                                 </td>
                                 <td>₹<?php echo number_format($finalPrice, 2); ?></td>
                                 <td>
                                     <form method="POST" action="<?php echo BASE_URL; ?>cart-action.php" style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="hidden" name="cart_id" value="<?php echo $item['id']; ?>">
                                         <input type="hidden" name="product_id" value="<?php echo $item['product_id']; ?>">
                                         <input type="hidden" name="action" value="update">
                                         <input type="number" name="quantity" value="<?php echo $item['quantity']; ?>" min="1" max="<?php echo $item['stock']; ?>" style="width: 60px; padding: 0.5rem; border: 2px solid #e0e0e0; border-radius: 5px;">
@@ -95,6 +115,7 @@ if ($db) {
                                 <td style="font-weight: 600;">₹<?php echo number_format($itemTotal, 2); ?></td>
                                 <td>
                                     <form method="POST" action="<?php echo BASE_URL; ?>cart-action.php" style="display: inline;">
+                                        <input type="hidden" name="cart_id" value="<?php echo $item['id']; ?>">
                                         <input type="hidden" name="product_id" value="<?php echo $item['product_id']; ?>">
                                         <input type="hidden" name="action" value="remove">
                                         <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Remove this item?')">

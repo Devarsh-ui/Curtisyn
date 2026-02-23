@@ -9,7 +9,7 @@ if (!isLoggedIn()) {
     exit();
 }
 
-$productId = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$productId = isset($_REQUEST['id']) ? intval($_REQUEST['id']) : (isset($_REQUEST['product_id']) ? intval($_REQUEST['product_id']) : 0);
 
 if ($productId === 0) {
     header('Location: products.php');
@@ -26,8 +26,14 @@ $userId = $_SESSION['user_id'];
 $commission = 10;
 
 $product = null;
-$quantity = isset($_GET['qty']) ? intval($_GET['qty']) : 1;
+$quantity = isset($_REQUEST['qty']) ? intval($_REQUEST['qty']) : (isset($_REQUEST['quantity']) ? intval($_REQUEST['quantity']) : 1);
 $quantity = max(1, $quantity);
+
+// Custom Size Parameters
+$sizeName = $_REQUEST['size_name'] ?? null;
+$customWidth = !empty($_REQUEST['custom_width']) ? floatval($_REQUEST['custom_width']) : null;
+$customHeight = !empty($_REQUEST['custom_height']) ? floatval($_REQUEST['custom_height']) : null;
+$customPrice = !empty($_REQUEST['final_price']) ? floatval($_REQUEST['final_price']) : null;
 
 if ($db) {
     $commission = getGlobalCommission($db);
@@ -45,16 +51,24 @@ if (!$product) {
 // Limit quantity to stock
 $quantity = min($quantity, $product['stock']);
 
-$finalPrice = calculateFinalPrice($product['price'], $commission);
-$platformCharge = $finalPrice - $product['price'];
+if ($customPrice !== null) {
+    $finalPrice = $customPrice;
+    // Calculate reverse platform charge based on total custom price
+    $basePrice = $finalPrice / (1 + ($commission / 100));
+    $platformCharge = $finalPrice - $basePrice;
+} else {
+    $finalPrice = calculateFinalPrice($product['price'], $commission);
+    $platformCharge = $finalPrice - $product['price'];
+}
+
 $totalPlatformCharge = $platformCharge * $quantity;
 $totalAmount = $finalPrice * $quantity;
 
-// Handle form submission
+// Handle form submission (only if address is submitted to indicate final order placement)
 $error = '';
 $success = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['address'])) {
     $paymentMethod = $_POST['payment_method'] ?? 'cod';
 
     if ($paymentMethod === 'cod') {
@@ -78,8 +92,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $stmt = $db->prepare("
                 INSERT INTO customer_orders
-                (order_id, user_id, product_id, quantity, price, total_amount, customer_name, customer_phone, customer_address, payment_method, payment_status, order_status)
-                VALUES (:order_id, :user_id, :product_id, :quantity, :price, :total_amount, :customer_name, :customer_phone, :customer_address, 'cod', 'pending', 'pending')
+                (order_id, user_id, product_id, quantity, price, total_amount, customer_name, customer_phone, customer_address, payment_method, payment_status, order_status, size_name, custom_width, custom_height)
+                VALUES (:order_id, :user_id, :product_id, :quantity, :price, :total_amount, :customer_name, :customer_phone, :customer_address, 'cod', 'pending', 'pending', :size_name, :custom_width, :custom_height)
             ");
 
             $stmt->bindParam(':order_id', $orderId);
@@ -91,6 +105,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bindParam(':customer_name', $name);
             $stmt->bindParam(':customer_phone', $phone);
             $stmt->bindParam(':customer_address', $fullAddress);
+            $stmt->bindParam(':size_name', $sizeName);
+            $stmt->bindParam(':custom_width', $customWidth);
+            $stmt->bindParam(':custom_height', $customHeight);
 
             if ($stmt->execute()) {
                 $updateStmt = $db->prepare("UPDATE products SET stock = stock - :qty WHERE id = :id");
@@ -142,6 +159,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?php endif; ?>
                             <div>
                                 <h3 style="margin-bottom: 0.5rem;"><?php echo htmlspecialchars($product['name']); ?></h3>
+                                <?php if (!empty($sizeName)): ?>
+                                    <p style="color: #666; font-size: 0.9rem; margin-bottom: 0.2rem;">
+                                        <strong>Size:</strong> <?php echo htmlspecialchars($sizeName); ?>
+                                        <?php if ($customWidth && $customHeight): ?>
+                                            (<?php echo htmlspecialchars($customWidth); ?>W x <?php echo htmlspecialchars($customHeight); ?>H ft)
+                                        <?php endif; ?>
+                                    </p>
+                                <?php endif; ?>
                                 <p style="color: #666; font-size: 0.9rem;">Price: ₹<?php echo number_format($finalPrice, 2); ?></p>
                                 <p style="color: #666; font-size: 0.9rem;">Stock: <?php echo $product['stock']; ?></p>
                             </div>
@@ -197,6 +222,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <form method="POST" action="">
                             <input type="hidden" name="product_id" value="<?php echo $productId; ?>">
                             <input type="hidden" name="quantity" value="<?php echo $quantity; ?>">
+                            <input type="hidden" name="size_name" value="<?php echo htmlspecialchars($sizeName ?? ''); ?>">
+                            <input type="hidden" name="custom_width" value="<?php echo htmlspecialchars($customWidth ?? ''); ?>">
+                            <input type="hidden" name="custom_height" value="<?php echo htmlspecialchars($customHeight ?? ''); ?>">
+                            <input type="hidden" name="final_price" value="<?php echo htmlspecialchars($customPrice ?? ''); ?>">
                             
                             <div class="form-group">
                                 <label class="form-label">Full Name</label>

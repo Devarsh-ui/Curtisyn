@@ -73,12 +73,6 @@ if ($db) {
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="<?php echo BASE_URL; ?>admin/product-form.php" class="nav-link <?php echo $activePage === 'add-product' ? 'active' : ''; ?>">
-                                <i class="fas fa-plus"></i>
-                                <span>Add Product</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
                             <a href="<?php echo BASE_URL; ?>admin/purchase-supplier.php" class="nav-link <?php echo $activePage === 'purchase' ? 'active' : ''; ?>">
                                 <i class="fas fa-shopping-cart"></i>
                                 <span>Purchase from Supplier</span>

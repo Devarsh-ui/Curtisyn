@@ -19,6 +19,7 @@ $product = [
 
 $error = '';
 $success = '';
+$product_sizes = [];
 
 if (isset($_GET['id']) && is_numeric($_GET['id'])) {
     $id = intval($_GET['id']);
@@ -28,6 +29,14 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
         $stmt->bindParam(':id', $id);
         $stmt->execute();
         $product = $stmt->fetch();
+        
+        // Fetch existing sizes
+        if ($product) {
+            $sizeStmt = $db->prepare("SELECT * FROM product_sizes WHERE product_id = :id ORDER BY id ASC");
+            $sizeStmt->bindParam(':id', $id);
+            $sizeStmt->execute();
+            $product_sizes = $sizeStmt->fetchAll();
+        }
     }
 }
 
@@ -75,11 +84,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->bindParam(':image', $imageName);
 
                 if ($stmt->execute()) {
+                    $productId = $product['id'] > 0 ? $product['id'] : $db->lastInsertId();
+                    
+                    // Handle Sizes
+                    $sizeNames = $_POST['size_name'] ?? [];
+                    $sizeWidths = $_POST['size_width'] ?? [];
+                    $sizeHeights = $_POST['size_height'] ?? [];
+                    $sizePrices = $_POST['size_price'] ?? [];
+                    $sizePricePerSqft = $_POST['size_price_per_sqft'] ?? [];
+                    
+                    // Clear existing sizes to easily handle updates/deletions (simple approach)
+                    $delStmt = $db->prepare("DELETE FROM product_sizes WHERE product_id = :product_id");
+                    $delStmt->bindParam(':product_id', $productId);
+                    $delStmt->execute();
+                    
+                    for ($i = 0; $i < count($sizeNames); $i++) {
+                        if (!empty($sizeNames[$i])) {
+                            $sName = sanitizeInput($sizeNames[$i]);
+                            $sWidth = !empty($sizeWidths[$i]) ? floatval($sizeWidths[$i]) : null;
+                            $sHeight = !empty($sizeHeights[$i]) ? floatval($sizeHeights[$i]) : null;
+                            $sPrice = !empty($sizePrices[$i]) ? floatval($sizePrices[$i]) : 0;
+                            $sPriceSqft = !empty($sizePricePerSqft[$i]) ? floatval($sizePricePerSqft[$i]) : null;
+                            
+                            $sStmt = $db->prepare("INSERT INTO product_sizes (product_id, size_name, width, height, price, price_per_sqft) VALUES (:product_id, :size_name, :width, :height, :price, :price_per_sqft)");
+                            $sStmt->bindParam(':product_id', $productId);
+                            $sStmt->bindParam(':size_name', $sName);
+                            $sStmt->bindParam(':width', $sWidth);
+                            $sStmt->bindParam(':height', $sHeight);
+                            $sStmt->bindParam(':price', $sPrice);
+                            $sStmt->bindParam(':price_per_sqft', $sPriceSqft);
+                            $sStmt->execute();
+                        }
+                    }
+
                     $success = $product['id'] > 0 ? 'Product updated.' : 'Product added.';
                     if ($product['id'] === 0) {
                         // Redirect BEFORE any HTML output
                         header('Location: ' . BASE_URL . 'admin/products.php');
                         exit();
+                    } else {
+                        // Refresh sizes after update
+                        $sizeStmt = $db->prepare("SELECT * FROM product_sizes WHERE product_id = :id ORDER BY id ASC");
+                        $sizeStmt->bindParam(':id', $product['id']);
+                        $sizeStmt->execute();
+                        $product_sizes = $sizeStmt->fetchAll();
                     }
                 } else {
                     $error = 'Failed to save product.';
@@ -162,8 +210,123 @@ $csrfToken = generateCsrfToken();
                 <label class="form-label">Image</label>
                 <input type="file" name="image" class="form-input" accept="image/*">
             </div>
+
+            <!-- Product Sizes Section -->
+            <div class="form-group" style="margin-top: 2rem; border-top: 1px solid #ddd; padding-top: 1rem;">
+                <h3 style="margin-bottom: 1rem;">Product Sizes & Variations</h3>
+                <p style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">Add predefined sizes (e.g., 3x4 ft) or a "Custom" size option.</p>
+                
+                <div id="sizes-container">
+                    <?php if (empty($product_sizes)): ?>
+                        <!-- Default empty row -->
+                        <div class="size-row" style="background: #f9f9f9; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #eee; position: relative;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem;">
+                                <div>
+                                    <label class="form-label">Size Name</label>
+                                    <input type="text" name="size_name[]" class="form-input" placeholder="e.g., 3x4 ft or Custom" required>
+                                </div>
+                                <div class="dim-group">
+                                    <label class="form-label">Width</label>
+                                    <input type="number" name="size_width[]" class="form-input" step="0.01" placeholder="Optional">
+                                </div>
+                                <div class="dim-group">
+                                    <label class="form-label">Height</label>
+                                    <input type="number" name="size_height[]" class="form-input" step="0.01" placeholder="Optional">
+                                </div>
+                                <div>
+                                    <label class="form-label">Fixed Price (₹)</label>
+                                    <input type="number" name="size_price[]" class="form-input" step="0.01" placeholder="0 if calculated">
+                                </div>
+                                <div>
+                                    <label class="form-label">Price / SqFt (₹)</label>
+                                    <input type="number" name="size_price_per_sqft[]" class="form-input" step="0.01" placeholder="For custom sizes">
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-danger remove-size" style="position: absolute; top: 10px; right: 10px;">&times;</button>
+                        </div>
+                    <?php else: ?>
+                        <!-- Existing sizes -->
+                        <?php foreach ($product_sizes as $size): ?>
+                            <div class="size-row" style="background: #f9f9f9; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #eee; position: relative;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem;">
+                                    <div>
+                                        <label class="form-label">Size Name</label>
+                                        <input type="text" name="size_name[]" class="form-input" value="<?php echo htmlspecialchars($size['size_name']); ?>" required>
+                                    </div>
+                                    <div class="dim-group">
+                                        <label class="form-label">Width</label>
+                                        <input type="number" name="size_width[]" class="form-input" step="0.01" value="<?php echo htmlspecialchars($size['width'] ?? ''); ?>">
+                                    </div>
+                                    <div class="dim-group">
+                                        <label class="form-label">Height</label>
+                                        <input type="number" name="size_height[]" class="form-input" step="0.01" value="<?php echo htmlspecialchars($size['height'] ?? ''); ?>">
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Fixed Price (₹)</label>
+                                        <input type="number" name="size_price[]" class="form-input" step="0.01" value="<?php echo htmlspecialchars($size['price']); ?>">
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Price / SqFt (₹)</label>
+                                        <input type="number" name="size_price_per_sqft[]" class="form-input" step="0.01" value="<?php echo htmlspecialchars($size['price_per_sqft'] ?? ''); ?>">
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-danger remove-size" style="position: absolute; top: 10px; right: 10px;">&times;</button>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+                
+                <button type="button" id="add-size-btn" class="btn btn-sm btn-secondary" style="margin-top: 0.5rem;">+ Add Size Variation</button>
+            </div>
             
-            <div class="form-actions">
+            <script>
+                document.getElementById('add-size-btn').addEventListener('click', function() {
+                    const container = document.getElementById('sizes-container');
+                    const row = document.createElement('div');
+                    row.className = 'size-row';
+                    row.style.cssText = 'background: #f9f9f9; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #eee; position: relative;';
+                    
+                    row.innerHTML = `
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem;">
+                            <div>
+                                <label class="form-label">Size Name</label>
+                                <input type="text" name="size_name[]" class="form-input" placeholder="e.g., 3x4 ft or Custom" required>
+                            </div>
+                            <div class="dim-group">
+                                <label class="form-label">Width</label>
+                                <input type="number" name="size_width[]" class="form-input" step="0.01" placeholder="Optional">
+                            </div>
+                            <div class="dim-group">
+                                <label class="form-label">Height</label>
+                                <input type="number" name="size_height[]" class="form-input" step="0.01" placeholder="Optional">
+                            </div>
+                            <div>
+                                <label class="form-label">Fixed Price (₹)</label>
+                                <input type="number" name="size_price[]" class="form-input" step="0.01" placeholder="0 if calculated">
+                            </div>
+                            <div>
+                                <label class="form-label">Price / SqFt (₹)</label>
+                                <input type="number" name="size_price_per_sqft[]" class="form-input" step="0.01" placeholder="For custom sizes">
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-danger remove-size" style="position: absolute; top: 10px; right: 10px;">&times;</button>
+                    `;
+                    
+                    container.appendChild(row);
+                });
+
+                document.getElementById('sizes-container').addEventListener('click', function(e) {
+                    if (e.target.classList.contains('remove-size')) {
+                        if (document.querySelectorAll('.size-row').length > 1) {
+                            e.target.closest('.size-row').remove();
+                        } else {
+                            alert('At least one size variation is required.');
+                        }
+                    }
+                });
+            </script>
+            
+            <div class="form-actions" style="margin-top: 2rem;">
                 <button type="submit" class="btn btn-primary">Save Product</button>
                 <a href="<?php echo BASE_URL; ?>admin/products.php" class="btn btn-secondary">Cancel</a>
             </div>

@@ -111,20 +111,35 @@ if ($db) {
                 $finalPrice = calculateFinalPrice($product['price'], $commission);
             ?>
             <div class="product-card">
-                <div class="product-image">
-                    <?php if ($product['image']): ?>
-                        <img src="uploads/products/<?php echo htmlspecialchars($product['image']); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>" style="max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 8px; z-index: 2; position: relative;">
+                <div class="product-image" style="background: #fff; text-align: center; height: 200px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 8px 8px 0 0;">
+                    <?php 
+                        $imgPath = !empty($product['image_path']) ? htmlspecialchars($product['image_path']) : 'uploads/products/' . htmlspecialchars($product['image']);
+                        if ($product['image'] || $product['image_path']): 
+                    ?>
+                        <img src="<?php echo $imgPath; ?>" alt="<?php echo htmlspecialchars($product['name']); ?>" style="width: 100%; height: 100%; object-fit: contain; padding: 10px;">
                     <?php else: ?>
-                        <div class="text-white text-center p-4" style="z-index: 2; position: relative;">
-                            <i class="fas fa-image fa-3x mb-3"></i>
+                        <div class="text-muted p-4">
+                            <i class="fas fa-image fa-3x mb-3 text-secondary"></i>
                             <p>No Image</p>
                         </div>
                     <?php endif; ?>
                 </div>
-                <div class="product-info">
-                    <h3 class="product-title"><?php echo htmlspecialchars($product['name']); ?></h3>
-                    <p class="product-price">₹<?php echo number_format($finalPrice, 2); ?></p>
-                    <a href="product-detail.php?id=<?php echo $product['id']; ?>" class="btn btn-primary w-100">View Details</a>
+                <div class="product-info p-3">
+                    <h3 class="product-title" style="font-size: 1.1rem; margin-bottom: 5px;"><?php echo htmlspecialchars($product['name']); ?></h3>
+                    
+                    <?php 
+                    $mrp = !empty($product['mrp']) ? floatval($product['mrp']) : null;
+                    $offerPrice = !empty($product['offer_price']) ? floatval($product['offer_price']) : null;
+                    $displayPrice = ($mrp && $offerPrice && $offerPrice < $mrp) ? $offerPrice : $finalPrice;
+                    ?>
+                    
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <span class="product-price mb-0" style="color: #27ae60; font-weight: 700;">₹<?php echo number_format($displayPrice, 2); ?></span>
+                        <?php if ($mrp && $offerPrice && $offerPrice < $mrp): ?>
+                            <span class="text-muted text-decoration-line-through" style="font-size: 0.85rem;">₹<?php echo number_format($mrp, 2); ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <a href="product-detail.php?id=<?php echo $product['id']; ?>" class="btn btn-primary w-100 btn-sm">View Details</a>
                 </div>
             </div>
             <?php endforeach; ?>
@@ -144,8 +159,8 @@ if ($db) {
             <div class="col-md-4">
                 <div class="category-card h-100">
                     <div class="position-relative">
-                        <div style="height: 250px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-window-cover text-white" style="font-size: 4rem;"></i>
+                        <div style="height: 250px; background: url('public/images/categories/curtains-category.jpg') center/cover no-repeat; display: flex; align-items: center; justify-content: center; position: relative;">
+                            <!-- Removed icon to allow the image's inherent text and design to shine through completely -->
                         </div>
                         <div class="card-body text-center p-4">
                             <h5 class="fw-bold mb-3">Curtains</h5>
@@ -159,8 +174,8 @@ if ($db) {
             <div class="col-md-4">
                 <div class="category-card h-100">
                     <div class="position-relative">
-                        <div style="height: 250px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-window-shade text-white" style="font-size: 4rem;"></i>
+                        <div style="height: 250px; background: url('public/images/categories/roller-curtains-category.jpg') center/cover no-repeat; display: flex; align-items: center; justify-content: center; position: relative;">
+                            <!-- Removed icon to allow the image's inherent text and design to shine through completely -->
                         </div>
                         <div class="card-body text-center p-4">
                             <h5 class="fw-bold mb-3">Roller Curtains</h5>
@@ -174,8 +189,8 @@ if ($db) {
             <div class="col-md-4">
                 <div class="category-card h-100">
                     <div class="position-relative">
-                        <div style="height: 250px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-bed text-white" style="font-size: 4rem;"></i>
+                        <div style="height: 250px; background: url('public/images/categories/mosquito-nets-category.jpg') center/cover no-repeat; display: flex; align-items: center; justify-content: center; position: relative;">
+                            <!-- Removed icon to allow the image's inherent text and design to shine through completely -->
                         </div>
                         <div class="card-body text-center p-4">
                             <h5 class="fw-bold mb-3">Mosquito Nets</h5>
